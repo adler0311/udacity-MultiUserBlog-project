@@ -315,7 +315,19 @@ class PostEdit(BlogHandler):
             error = "subject and content, please!"
             self.render("newpost.html", subject=subject, content=content, error=error)
 
+class PostDelete(BlogHandler):
+    def get(self, post_id):
+        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+        post = db.get(key)
 
+        self.render('delete.html')
+
+    def post(self, post_id):
+        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+        post = db.get(key)
+        post.delete()
+        
+        self.redirect('/blog')
 
 app = webapp2.WSGIApplication([('/', MainPage),
                                ('/unit2/rot13', Rot13),
@@ -328,6 +340,7 @@ app = webapp2.WSGIApplication([('/', MainPage),
                                ('/login', Login),
                                ('/logout', Logout),
                                ('/unit3/welcome', Unit3Welcome),
-                               ('/blog/edit/([0-9]+)', PostEdit)
+                               ('/blog/edit/([0-9]+)', PostEdit),
+                               ('/blog/delete/([0-9]+)', PostDelete)
                                ],
                               debug=True)

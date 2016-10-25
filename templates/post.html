@@ -8,7 +8,8 @@
       {{p.created.strftime("%b %d, %Y")}}
     </div>
     <div class="modify">
-    <a href="/blog/edit/{{p.key().id()}}">edit</a>
+      <a href="/blog/edit/{{p.key().id()}}">edit</a>
+      <a href="/blog/delete/{{p.key().id()}}">delete</a>
     </div>
   </div>
 
