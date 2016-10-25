@@ -28,6 +28,7 @@ def check_secure_val(secure_val):
 	if secure_val == make_secure_val(val):
 		return val
 
+# base setting for blog handler
 class BlogHandler(webapp2.RequestHandler):
     def write(self, *a, **kw):
         self.response.out.write(*a, **kw)
@@ -60,13 +61,15 @@ class BlogHandler(webapp2.RequestHandler):
     	uid = self.read_secure_cookie('user_id')
     	self.user = uid and User.by_id(int(uid))
 
+
 def render_post(response, post):
 	response.out.write('<b>' + post.subject + '</b><br>')
 	response.out.write(post.content)
 
+# Main page
 class MainPage(BlogHandler):
   def get(self):
-      self.write('Hello, Udacity!')
+      self.write('<a href="/login">go to login</a>')
 
 
 ### User Stuff ###
@@ -145,6 +148,7 @@ class PostPage(BlogHandler):
             return
 
         self.render("permalink.html", post = post)
+
 
 class NewPost(BlogHandler):
     def get(self):
@@ -238,7 +242,6 @@ class Unit2Signup(Signup):
 
 class Register(Signup):
 	def done(self):
-		#
 		u = User.by_name(self.username)
 		if u:
 			msg = "That user already exists."
@@ -286,6 +289,34 @@ class Welcome(BlogHandler):
         else:
             self.redirect('/unit2/signup')
 
+class PostEdit(BlogHandler):
+    def get(self, post_id):
+        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+        post = db.get(key)
+
+        self.render('edit.html', subject=post.subject, content=post.content)
+
+    def post(self, post_id):
+        if not self.user:
+            self.redirect("/blog")
+
+        subject = self.request.get('subject')
+        content = self.request.get('content')
+
+        if subject and content:
+            key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+            post = db.get(key)
+
+            post.subject = subject
+            post.content = content
+            post.put()
+            self.redirect('/blog/%s' % str(post.key().id()))
+        else:
+            error = "subject and content, please!"
+            self.render("newpost.html", subject=subject, content=content, error=error)
+
+
+
 app = webapp2.WSGIApplication([('/', MainPage),
                                ('/unit2/rot13', Rot13),
                                ('/unit2/signup', Unit2Signup),
@@ -296,6 +327,7 @@ app = webapp2.WSGIApplication([('/', MainPage),
                                ('/signup', Register),
                                ('/login', Login),
                                ('/logout', Logout),
-                               ('/unit3/welcome', Unit3Welcome)
+                               ('/unit3/welcome', Unit3Welcome),
+                               ('/blog/edit/([0-9]+)', PostEdit)
                                ],
                               debug=True)

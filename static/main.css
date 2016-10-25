@@ -84,6 +84,7 @@ input[type=submit] {
 .post-heading {
     position: relative;
     border-bottom: 3px solid #666;
+    display: flex;
 }
 
 .post-title {
@@ -99,6 +100,9 @@ input[type=submit] {
 
 }
 
+.modify {
+    bottom: 0px;
+}
 .post-content {
     margin-top: 5px;
 }

@@ -7,6 +7,9 @@
     <div class="post-date">
       {{p.created.strftime("%b %d, %Y")}}
     </div>
+    <div class="modify">
+    <a href="/blog/edit/{{p.key().id()}}">edit</a>
+    </div>
   </div>
 
   <div class="post-content">
