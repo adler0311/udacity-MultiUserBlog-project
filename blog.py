@@ -128,6 +128,7 @@ class Post(db.Model):
     content = db.TextProperty(required = True)
     created = db.DateTimeProperty(auto_now_add = True)
     last_modified = db.DateTimeProperty(auto_now = True)
+    userId = db.IntegerProperty()
 
     def render(self):
         self._render_text = self.content.replace('\n', '<br>')
@@ -153,7 +154,7 @@ class PostPage(BlogHandler):
 class NewPost(BlogHandler):
     def get(self):
     	if self.user:
-    		self.render("newpost.html")
+            self.render("newpost.html")
     	else:
     		self.redirect("/login")
 
@@ -164,8 +165,10 @@ class NewPost(BlogHandler):
         subject = self.request.get('subject')
         content = self.request.get('content')
 
+
+
         if subject and content:
-            p = Post(parent = blog_key(), subject = subject, content = content)
+            p = Post(parent = blog_key(), subject = subject, content = content, userId = int(self.read_secure_cookie('user_id')))
             p.put()
             self.redirect('/blog/%s' % str(p.key().id()))
         else:
@@ -291,9 +294,15 @@ class Welcome(BlogHandler):
 
 class PostEdit(BlogHandler):
     def get(self, post_id):
+
+
         key = db.Key.from_path('Post', int(post_id), parent=blog_key())
         post = db.get(key)
+        
 
+        if post.userId != int(self.read_secure_cookie('user_id')):
+            self.write("This is not yours")
+            return
         self.render('edit.html', subject=post.subject, content=post.content)
 
     def post(self, post_id):
@@ -320,6 +329,10 @@ class PostDelete(BlogHandler):
         key = db.Key.from_path('Post', int(post_id), parent=blog_key())
         post = db.get(key)
 
+        if post.userId != int(self.read_secure_cookie('user_id')):
+            self.write("This is not yours")
+            return
+        
         self.render('delete.html')
 
     def post(self, post_id):
