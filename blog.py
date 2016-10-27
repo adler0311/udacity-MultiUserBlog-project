@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 import re
 import hmac
@@ -129,15 +130,24 @@ class Post(db.Model):
     created = db.DateTimeProperty(auto_now_add = True)
     last_modified = db.DateTimeProperty(auto_now = True)
     userId = db.IntegerProperty()
+    userName = db.StringProperty()
+    likeCount = db.IntegerProperty()        
 
     def render(self):
         self._render_text = self.content.replace('\n', '<br>')
         return render_str("post.html", p = self)
 
+class Liked(db.Model):
+    postId = db.IntegerProperty()
+    userId = db.IntegerProperty()
+    liked = db.BooleanProperty()
+
 class BlogFront(BlogHandler):
     def get(self):
         posts = db.GqlQuery("select * from Post order by created desc limit 10")
         self.render('front.html', posts = posts)
+
+
 
 class PostPage(BlogHandler):
     def get(self, post_id):
@@ -150,7 +160,7 @@ class PostPage(BlogHandler):
 
         self.render("permalink.html", post = post)
 
-
+        
 class NewPost(BlogHandler):
     def get(self):
     	if self.user:
@@ -165,11 +175,14 @@ class NewPost(BlogHandler):
         subject = self.request.get('subject')
         content = self.request.get('content')
 
-
-
         if subject and content:
-            p = Post(parent = blog_key(), subject = subject, content = content, userId = int(self.read_secure_cookie('user_id')))
+            p = Post(parent = blog_key(), subject = subject, content = content, userId = int(self.read_secure_cookie('user_id')),
+                    likeCount = 0, userName = self.user.name)
             p.put()
+
+            l = Liked(postId = int(p.key().id()), userId = p.userId, liked = False)
+            l.put()
+
             self.redirect('/blog/%s' % str(p.key().id()))
         else:
             error = "subject and content, please!"
@@ -342,6 +355,35 @@ class PostDelete(BlogHandler):
         
         self.redirect('/blog')
 
+class PostLike(BlogHandler):
+    def post(self, post_id):
+        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+        post = db.get(key)
+        user_id = int(self.read_secure_cookie('user_id'))
+        like = db.GqlQuery("select * from Liked WHERE postId = :post_id AND userId = :user_id", post_id = int(post_id), user_id = user_id).get() 
+
+        if not like:
+            l = Liked(postId = int(post_id), userId = user_id, liked = True)
+            l.put()
+            post.likeCount += 1
+            post.put()
+            self.write("you like this post")
+        elif int(post.userId) != user_id:
+            if like.liked == False:
+                like.liked = True
+                like.put()
+                post.likeCount += 1
+                post.put()
+                self.write("you like this post")
+            else:
+                like.liked = False
+                like.put()
+                post.likeCount -= 1
+                post.put()
+                self.write("you unlike this post")
+        elif int(post.userId) == user_id:
+            self.write("You can not like your post")
+        
 app = webapp2.WSGIApplication([('/', MainPage),
                                ('/unit2/rot13', Rot13),
                                ('/unit2/signup', Unit2Signup),
@@ -354,6 +396,7 @@ app = webapp2.WSGIApplication([('/', MainPage),
                                ('/logout', Logout),
                                ('/unit3/welcome', Unit3Welcome),
                                ('/blog/edit/([0-9]+)', PostEdit),
-                               ('/blog/delete/([0-9]+)', PostDelete)
+                               ('/blog/delete/([0-9]+)', PostDelete),
+                               ('/blog/like/([0-9]+)', PostLike)
                                ],
                               debug=True)

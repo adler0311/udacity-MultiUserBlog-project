@@ -11,13 +11,16 @@
       <a href="/blog/edit/{{p.key().id()}}">edit</a>
       <a href="/blog/delete/{{p.key().id()}}">delete</a>
     </div>
+    <div class="identifier">
+    created by : {{p.userName}}
+    </div>
   </div>
 
   <div class="post-content">
     {{p._render_text | safe}}
   </div>
-  <div>
-      <button type="button">I Like this Post!</button>
-      
-  </div>
+  <form method="post" action="/blog/like/{{p.key().id()}}">
+      <p> Likes : <span id="likecount">{{p.likeCount}}</span> </p>
+      <button type="submit">I Like this Post!</button>
+  </form>
 </div>
