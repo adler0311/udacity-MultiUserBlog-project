@@ -4,8 +4,10 @@
 
 <h1>Are you sure to delete this comment?</h1>
 <form method="post">
-	<input type="submit" value="sure">
-	<button><a href="/blog/{{c.postId}}">Cancel</a></button>
+	<div class="del">
+		<button class="btn btn-default" type="submit">sure</button>
+		<a class="btn btn-default" href="#" role="button">cancel</a>
+	</div>
 </form>
 
 {% endblock %}

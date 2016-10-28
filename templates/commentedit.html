@@ -3,13 +3,13 @@
 {% block content %}
    <form method="post">
       <label>
-        <div>edit comment</div>
+        <div>Edit comment</div>
         <textarea name="comments" id = "comment" rows="5">{{c}}</textarea>
       </label>
 
       <div class="error">{{error}}</div>
 
-      <input id = "commentSubmit" type="submit" value="edit">
+      <button class="btn btn-default" type="submit">Modify</button>
     </form>
 
 {% endblock %}

@@ -7,12 +7,12 @@
     <div class="post-date">
       {{p.created.strftime("%b %d, %Y")}}
     </div>
-    <div class="modify">
-      <a href="/blog/edit/{{p.key().id()}}">edit</a>
-      <a href="/blog/delete/{{p.key().id()}}">delete</a>
-    </div>
-    <div class="identifier">
+    <div class="post-identifier">
     created by : {{p.userName}}
+    </div>
+    <div class="post-modify">
+      <a id = "editpost" href="/blog/edit/{{p.key().id()}}">edit</a>
+      <a id = "delpost" href="/blog/delete/{{p.key().id()}}">delete</a>
     </div>
   </div>
 
@@ -24,12 +24,11 @@
   
   <div class="buttons">
     <form method="post" action="/blog/like/{{p.key().id()}}">
-      <button type="submit">I Like this Post!</button>
+      <button class="btn btn-primary">I Like this Post!</button>
     </form>
     <form method="get" action="/blog/comment/{{p.key().id()}}">
-      <button id="commentButton" type="submit">Comment here!</button>
+      <button id="commentButton" class="btn btn-default">Comment here!</button>
     </form>
   </div>
-
 
 </div>

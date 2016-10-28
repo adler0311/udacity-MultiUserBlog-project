@@ -70,8 +70,7 @@ def render_post(response, post):
 # Main page
 class MainPage(BlogHandler):
   def get(self):
-      self.write('<a href="/login">go to login</a>')
-
+      self.render("main.html")
 
 ### User Stuff ###
 def make_salt(length=5):
@@ -144,11 +143,11 @@ class Liked(db.Model):
     liked = db.BooleanProperty()
 
 class Comment(db.Model):
-    postId = db.IntegerProperty(required = True)
+    postId = db.IntegerProperty()
+    created = db.DateTimeProperty(auto_now_add = True)
     comment = db.StringProperty()
     userId = db.IntegerProperty()
     userName = db.StringProperty()
-    created = db.DateTimeProperty(auto_now_add = True)
 
     def render(self):
         return render_str("comment.html", c = self)
@@ -403,6 +402,10 @@ class PostComment(BlogHandler):
     def get(self, post_id):
         key = db.Key.from_path('Post', int(post_id), parent=blog_key())
         post = db.get(key)
+
+        if not self.user:
+            self.redirect("/blog")
+
         self.render('newcomment.html', p=post)
 
     def post(self, post_id):
@@ -428,6 +431,9 @@ class CommentEdit(BlogHandler):
         key = db.Key.from_path('Comment', int(comment_id))
         comment = db.get(key)
         
+        if not self.user:
+            self.redirect("/blog")
+
         if comment.userId != int(self.read_secure_cookie('user_id')):
             self.write("This is not yours")
             return
@@ -455,6 +461,9 @@ class CommentDelete(BlogHandler):
         key = db.Key.from_path('Comment', int(comment_id))
         c = db.get(key)
 
+        if not self.user:
+            self.redirect("/blog")
+
         if c.userId != int(self.read_secure_cookie('user_id')):
             self.write("This is not yours")
             return
@@ -463,6 +472,10 @@ class CommentDelete(BlogHandler):
     def post(self, comment_id):
         key = db.Key.from_path('Comment', int(comment_id))
         c = db.get(key)
+
+        if not self.user:
+            self.redirect("/blog")
+
         post_id = c.postId 
         c.delete()        
         self.redirect('/blog/%s' % post_id)

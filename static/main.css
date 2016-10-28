@@ -80,7 +80,9 @@ input[type=submit] {
     text-align: center;
     margin-bottom: 30px;
     text-decoration: none;
+    text-decoration: none;
 }
+/* post page */
 
 .post + .post {
     margin-top: 15px;
@@ -97,12 +99,35 @@ input[type=submit] {
     font-weight: bold;
 }
 
+a:link {
+    color: #000;
+}
+
+a:visited {
+    color: #000;
+}
+
+a:hover {
+    color: #000;
+    text-decoration: none;
+}
+
 .post-date {
     position: absolute;
     right: 0px;
     bottom: 0px;
     color: #999;
+}
 
+.post-modify {
+    margin-top: 20px;
+    position: absolute;
+    right: 120px;
+}
+
+.post-identifier {
+    margin-left: 20px;
+    margin-top: 20px;
 }
 
 .buttons {
@@ -119,8 +144,38 @@ input[type=submit] {
 .post-content {
     margin-top: 5px;
 }
-
+9
 .comment-date {
     display: flex;
     flex-wrap: wrap;
 }
+
+/* signup page */
+.label {
+    color: black;
+}
+
+.signupButton {
+    width: 30px;
+}
+
+/* delete post */
+
+.del {
+    width: 100%;
+    margin: 20px auto;
+}
+
+/* comment page */
+
+.comment-body {
+    display: flex;
+}
+
+.comment-modify {
+    position: absolute;
+    right: 140px;
+    margin-top: 10px;
+}
+
+/* Main page */

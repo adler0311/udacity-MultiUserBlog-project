@@ -7,12 +7,15 @@
 			commented by : {{c.userName}}
 		</div>
 	</div>
+	<div class="comment-body">
 		<div class="post-content">
-    	{{c.comment | safe}}
-  	</div>
-  	<div class="modify">
-	    <a href="/comment/edit/{{c.key().id()}}">edit</a>
-	    <a href="/comment/delete/{{c.key().id()}}">delete</a>
+	    	{{c.comment | safe}}
+	  	</div>
+	  	<div class="comment-modify">
+		    <a href="/comment/edit/{{c.key().id()}}">edit</a>
+		    <a href="/comment/delete/{{c.key().id()}}">delete</a>
+		</div>
 	</div>
+	<hr>
 
 </div>
