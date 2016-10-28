@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Are you sure to delete this comment?</h1>
+<form method="post">
+	<input type="submit" value="sure">
+	<button><a href="/blog/{{c.postId}}">Cancel</a></button>
+</form>
+
+{% endblock %}

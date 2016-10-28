@@ -63,6 +63,11 @@ textarea {
   font-family: monospace;
 }
 
+#comment {
+    width: 600px;
+    height: 100px;
+}
+
 input[type=submit] {
   font-size: 24px;
 }
@@ -100,6 +105,14 @@ input[type=submit] {
 
 }
 
+.buttons {
+    display:flex;
+}
+
+#commentButton {
+    margin-left: 20px;
+}
+
 .modify {
     bottom: 0px;
 }
@@ -107,3 +120,7 @@ input[type=submit] {
     margin-top: 5px;
 }
 
+.comment-date {
+    display: flex;
+    flex-wrap: wrap;
+}

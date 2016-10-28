@@ -1,7 +1,7 @@
 <div class="post">
   <div class="post-heading">
     <div class="post-title">
-      {{p.subject}}
+      <a href="/blog/{{p.key().id()}}">{{p.subject}}</a>
     </div>
 
     <div class="post-date">
@@ -19,8 +19,17 @@
   <div class="post-content">
     {{p._render_text | safe}}
   </div>
-  <form method="post" action="/blog/like/{{p.key().id()}}">
-      <p> Likes : <span id="likecount">{{p.likeCount}}</span> </p>
+  
+  <p> Likes : <span id="likecount">{{p.likeCount}}</span> </p>
+  
+  <div class="buttons">
+    <form method="post" action="/blog/like/{{p.key().id()}}">
       <button type="submit">I Like this Post!</button>
-  </form>
+    </form>
+    <form method="get" action="/blog/comment/{{p.key().id()}}">
+      <button id="commentButton" type="submit">Comment here!</button>
+    </form>
+  </div>
+
+
 </div>

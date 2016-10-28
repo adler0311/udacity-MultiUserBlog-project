@@ -1,5 +1,14 @@
 {% extends "base.html" %}
 
 {% block content %}
+
   {{post.render() | safe}}
+
+  <hr>
+
+  {% for c in comments %}
+    {{ c.render() | safe }}
+    <br><br>
+  {% endfor %}
+
 {% endblock %}

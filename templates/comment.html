@@ -1,0 +1,18 @@
+<div class="commentPage">
+	<div class="comment-header">
+		<div class="comment-date">
+	    	{{c.created.strftime("%H:%M %b %d, %Y")}}
+		</div>
+		<div class="identifier">
+			commented by : {{c.userName}}
+		</div>
+	</div>
+		<div class="post-content">
+    	{{c.comment | safe}}
+  	</div>
+  	<div class="modify">
+	    <a href="/comment/edit/{{c.key().id()}}">edit</a>
+	    <a href="/comment/delete/{{c.key().id()}}">delete</a>
+	</div>
+
+</div>

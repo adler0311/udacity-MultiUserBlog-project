@@ -135,12 +135,23 @@ class Post(db.Model):
 
     def render(self):
         self._render_text = self.content.replace('\n', '<br>')
+
         return render_str("post.html", p = self)
 
 class Liked(db.Model):
     postId = db.IntegerProperty()
     userId = db.IntegerProperty()
     liked = db.BooleanProperty()
+
+class Comment(db.Model):
+    postId = db.IntegerProperty(required = True)
+    comment = db.StringProperty()
+    userId = db.IntegerProperty()
+    userName = db.StringProperty()
+    created = db.DateTimeProperty(auto_now_add = True)
+
+    def render(self):
+        return render_str("comment.html", c = self)
 
 class BlogFront(BlogHandler):
     def get(self):
@@ -153,12 +164,16 @@ class PostPage(BlogHandler):
     def get(self, post_id):
         key = db.Key.from_path('Post', int(post_id), parent=blog_key())
         post = db.get(key)
+        
+        comments = Comment.all()
+        comments.filter("postId =", int(post_id))
+        comments.order("-created")
 
         if not post:
             self.error(404)
             return
 
-        self.render("permalink.html", post = post)
+        self.render("permalink.html", post = post, comments = comments)
 
         
 class NewPost(BlogHandler):
@@ -307,12 +322,9 @@ class Welcome(BlogHandler):
 
 class PostEdit(BlogHandler):
     def get(self, post_id):
-
-
         key = db.Key.from_path('Post', int(post_id), parent=blog_key())
         post = db.get(key)
         
-
         if post.userId != int(self.read_secure_cookie('user_id')):
             self.write("This is not yours")
             return
@@ -328,7 +340,6 @@ class PostEdit(BlogHandler):
         if subject and content:
             key = db.Key.from_path('Post', int(post_id), parent=blog_key())
             post = db.get(key)
-
             post.subject = subject
             post.content = content
             post.put()
@@ -345,44 +356,117 @@ class PostDelete(BlogHandler):
         if post.userId != int(self.read_secure_cookie('user_id')):
             self.write("This is not yours")
             return
-        
         self.render('delete.html')
 
     def post(self, post_id):
         key = db.Key.from_path('Post', int(post_id), parent=blog_key())
         post = db.get(key)
-        post.delete()
-        
+        post.delete()        
         self.redirect('/blog')
 
 class PostLike(BlogHandler):
     def post(self, post_id):
         key = db.Key.from_path('Post', int(post_id), parent=blog_key())
         post = db.get(key)
-        user_id = int(self.read_secure_cookie('user_id'))
-        like = db.GqlQuery("select * from Liked WHERE postId = :post_id AND userId = :user_id", post_id = int(post_id), user_id = user_id).get() 
+        
+        if not self.user:
+            self.redirect("/login")
+        else:
 
-        if not like:
-            l = Liked(postId = int(post_id), userId = user_id, liked = True)
-            l.put()
-            post.likeCount += 1
-            post.put()
-            self.write("you like this post")
-        elif int(post.userId) != user_id:
-            if like.liked == False:
-                like.liked = True
-                like.put()
+            user_id = int(self.read_secure_cookie('user_id'))
+            like = db.GqlQuery("select * from Liked WHERE postId = :post_id AND userId = :user_id", post_id = int(post_id), user_id = user_id).get() 
+
+            if not like:
+                l = Liked(postId = int(post_id), userId = user_id, liked = True)
+                l.put()
                 post.likeCount += 1
                 post.put()
                 self.write("you like this post")
-            else:
-                like.liked = False
-                like.put()
-                post.likeCount -= 1
-                post.put()
-                self.write("you unlike this post")
-        elif int(post.userId) == user_id:
-            self.write("You can not like your post")
+            elif int(post.userId) != user_id:
+                if like.liked == False:
+                    like.liked = True
+                    like.put()
+                    post.likeCount += 1
+                    post.put()
+                    self.write("you like this post")
+                else:
+                    like.liked = False
+                    like.put()
+                    post.likeCount -= 1
+                    post.put()
+                    self.write("you unlike this post")
+            elif int(post.userId) == user_id:
+                self.write("You can not like your post")
+
+class PostComment(BlogHandler):
+
+    def get(self, post_id):
+        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+        post = db.get(key)
+        self.render('newcomment.html', p=post)
+
+    def post(self, post_id):
+        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+        post = db.get(key)
+
+        if not self.user:
+            self.redirect("/blog")
+
+        comment = self.request.get('comments')
+
+        if comment:
+            c = Comment(comment = comment, postId = int(post_id), userName = self.user.name, userId = int(self.read_secure_cookie('user_id')))
+            c.put()
+
+            self.redirect('/blog/%s' % post_id)
+        else:
+            error = "comment, please!"
+            self.render("newcomment.html", error=error)
+
+class CommentEdit(BlogHandler):
+    def get(self, comment_id):
+        key = db.Key.from_path('Comment', int(comment_id))
+        comment = db.get(key)
+        
+        if comment.userId != int(self.read_secure_cookie('user_id')):
+            self.write("This is not yours")
+            return
+        self.render('commentedit.html', c = comment.comment)
+
+    def post(self, comment_id):
+        key = db.Key.from_path('Comment', int(comment_id))
+        c = db.get(key)
+
+        if not self.user:
+            self.redirect("/blog/%s" % c.postId)
+
+        comment = self.request.get('comments')
+
+        if comment:
+            c.comment = comment
+            c.put()
+            self.redirect('/blog/%s' % str(c.postId))
+        else:
+            error = "subject and content, please!"
+            self.render("newpost.html", subject=subject, content=content, error=error)
+
+class CommentDelete(BlogHandler):
+    def get(self, comment_id):
+        key = db.Key.from_path('Comment', int(comment_id))
+        c = db.get(key)
+
+        if c.userId != int(self.read_secure_cookie('user_id')):
+            self.write("This is not yours")
+            return
+        self.render('commentdelete.html', c = c)
+
+    def post(self, comment_id):
+        key = db.Key.from_path('Comment', int(comment_id))
+        c = db.get(key)
+        post_id = c.postId 
+        c.delete()        
+        self.redirect('/blog/%s' % post_id)
+
         
 app = webapp2.WSGIApplication([('/', MainPage),
                                ('/unit2/rot13', Rot13),
@@ -397,6 +481,9 @@ app = webapp2.WSGIApplication([('/', MainPage),
                                ('/unit3/welcome', Unit3Welcome),
                                ('/blog/edit/([0-9]+)', PostEdit),
                                ('/blog/delete/([0-9]+)', PostDelete),
-                               ('/blog/like/([0-9]+)', PostLike)
+                               ('/blog/like/([0-9]+)', PostLike),
+                               ('/blog/comment/([0-9]+)', PostComment),
+                               ('/comment/edit/([0-9]+)', CommentEdit),
+                               ('/comment/delete/([0-9]+)', CommentDelete),
                                ],
                               debug=True)
