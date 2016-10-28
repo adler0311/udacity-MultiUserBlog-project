@@ -324,38 +324,44 @@ class PostEdit(BlogHandler):
         key = db.Key.from_path('Post', int(post_id), parent=blog_key())
         post = db.get(key)
         
-        if post.userId != int(self.read_secure_cookie('user_id')):
-            self.write("This is not yours")
-            return
-        self.render('edit.html', subject=post.subject, content=post.content)
+        if self.user:
+            if post.userId != int(self.read_secure_cookie('user_id')):
+                self.write("This is not yours")
+                return
+            self.render('edit.html', subject=post.subject, content=post.content)
+        else:
+            self.redirect("/login")
 
     def post(self, post_id):
-        if not self.user:
-            self.redirect("/blog")
+        if self.user:
+            subject = self.request.get('subject')
+            content = self.request.get('content')
 
-        subject = self.request.get('subject')
-        content = self.request.get('content')
-
-        if subject and content:
-            key = db.Key.from_path('Post', int(post_id), parent=blog_key())
-            post = db.get(key)
-            post.subject = subject
-            post.content = content
-            post.put()
-            self.redirect('/blog/%s' % str(post.key().id()))
+            if subject and content:
+                key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+                post = db.get(key)
+                post.subject = subject
+                post.content = content
+                post.put()
+                self.redirect('/blog/%s' % str(post.key().id()))
+            else:
+                error = "subject and content, please!"
+                self.render("newpost.html", subject=subject, content=content, error=error)
         else:
-            error = "subject and content, please!"
-            self.render("newpost.html", subject=subject, content=content, error=error)
+            self.redirect("/login")
+
 
 class PostDelete(BlogHandler):
     def get(self, post_id):
         key = db.Key.from_path('Post', int(post_id), parent=blog_key())
         post = db.get(key)
-
-        if post.userId != int(self.read_secure_cookie('user_id')):
-            self.write("This is not yours")
-            return
-        self.render('delete.html')
+        if self.user:
+            if post.userId != int(self.read_secure_cookie('user_id')):
+                self.write("This is not yours")
+                return
+            self.render('delete.html')
+        else:
+            self.redirect('/login')
 
     def post(self, post_id):
         key = db.Key.from_path('Post', int(post_id), parent=blog_key())
@@ -368,10 +374,7 @@ class PostLike(BlogHandler):
         key = db.Key.from_path('Post', int(post_id), parent=blog_key())
         post = db.get(key)
         
-        if not self.user:
-            self.redirect("/login")
-        else:
-
+        if self.user:
             user_id = int(self.read_secure_cookie('user_id'))
             like = db.GqlQuery("select * from Liked WHERE postId = :post_id AND userId = :user_id", post_id = int(post_id), user_id = user_id).get() 
 
@@ -396,6 +399,8 @@ class PostLike(BlogHandler):
                     self.write("you unlike this post")
             elif int(post.userId) == user_id:
                 self.write("You can not like your post")
+        else:
+            self.redirect("/login")
 
 class PostComment(BlogHandler):
 
@@ -403,28 +408,30 @@ class PostComment(BlogHandler):
         key = db.Key.from_path('Post', int(post_id), parent=blog_key())
         post = db.get(key)
 
-        if not self.user:
-            self.redirect("/blog")
+        if self.user:
+            self.render('newcomment.html', p=post)
+        else:
+            self.redirect("/login")
 
-        self.render('newcomment.html', p=post)
 
     def post(self, post_id):
         key = db.Key.from_path('Post', int(post_id), parent=blog_key())
         post = db.get(key)
 
-        if not self.user:
+        if self.user:
+            comment = self.request.get('comments')
+
+            if comment:
+                c = Comment(comment = comment, postId = int(post_id), userName = self.user.name, userId = int(self.read_secure_cookie('user_id')))
+                c.put()
+
+                self.redirect('/blog/%s' % post_id)
+            else:
+                error = "comment, please!"
+                self.render("newcomment.html", error=error)
+        else:
             self.redirect("/blog")
 
-        comment = self.request.get('comments')
-
-        if comment:
-            c = Comment(comment = comment, postId = int(post_id), userName = self.user.name, userId = int(self.read_secure_cookie('user_id')))
-            c.put()
-
-            self.redirect('/blog/%s' % post_id)
-        else:
-            error = "comment, please!"
-            self.render("newcomment.html", error=error)
 
 class CommentEdit(BlogHandler):
     def get(self, comment_id):

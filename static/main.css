@@ -1,4 +1,6 @@
 body {
+    background: url("http://i43.tinypic.com/wwda8m.jpg") no-repeat;
+    background-size: cover;
     position: relative;
     font-family: Helvetica, Arial, sans-serif;
     font-size: 14px;
