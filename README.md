@@ -9,6 +9,13 @@ This app is deployed by Google appspot
 Just go to the below webpage.
 [Multi User Blog](http://multiuserblog-147805.appspot.com/).
 
+##How to start in local
+you can start this app by launching Google app engine. and the link for this is here: [Google App Engine](https://cloud.google.com/appengine/downloads)
+1. Launch the Google app engine.
+2. Go Menu - Add existing application - click this app
+3. Click run button.
+4. As click browse button, you can run this app locally.
+
 ##How to Contribute
 The full code is not on Github, because I have not solved security issue such as secret key or api key. ~~So, No way~~.
 

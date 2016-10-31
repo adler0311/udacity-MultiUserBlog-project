@@ -1,5 +1,5 @@
 body {
-    background: url("http://i43.tinypic.com/wwda8m.jpg") no-repeat;
+    background: url("http://i291.photobucket.com/albums/ll310/tracyne0588/mmterasawa-surfsup-sandy.jpg") center center;
     background-size: cover;
     position: relative;
     font-family: Helvetica, Arial, sans-serif;
@@ -20,12 +20,14 @@ body {
 }
 
 .login-link {
-    color: gray;
+    color: black;
     text-decoration: none;
+    font-size: 18px;
 }
 
 .login-link:visited {
-    color: gray;
+    color: black;
+    font-size: 18px;
 }
 
 .login-link:hover {
@@ -118,7 +120,8 @@ a:hover {
     position: absolute;
     right: 0px;
     bottom: 0px;
-    color: #999;
+    color: black;
+    font-size: 18px;
 }
 
 .post-modify {
