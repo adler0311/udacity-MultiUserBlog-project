@@ -366,7 +366,8 @@ class PostEdit(BlogHandler):
                 self.render('edit.html', subject=post.subject,
                             content=post.content)
             else:
-                self.redirect("/login")
+                error = "you have to login first"
+                self.render("login-form.html", error=error)
         else:
             error = "There is no post!"
             self.render("permalink.html", post=post, comments=post.comments, error=error)
@@ -398,7 +399,9 @@ class PostEdit(BlogHandler):
                         self.render("newpost.html", subject=subject, content=content,
                                     error=error)
             else:
-                self.redirect("/login")
+                error = "you have to login first"
+                self.render("login-form.html", error=error)
+
         else:
             error = "There is no post!"
             self.render("permalink.html", post=post, comments=post.comments, error=error)
@@ -419,7 +422,8 @@ class PostDelete(BlogHandler):
                     return
                 self.render('delete.html')
             else:
-                self.redirect('/login')
+                error = "you have to login first"
+                self.render("login-form.html", error=error)
         else:
             error = "There is no post!"
             self.render("permalink.html", post=post, comments=post.comments, error=error)
@@ -438,6 +442,9 @@ class PostDelete(BlogHandler):
                     return
                 post.delete()
                 self.redirect('/blog')
+            else:
+                error = "you have to login first"
+                self.render("login-form.html", error=error)
         else:
             error = "There is no post!"
             self.render("permalink.html", post=post, comments=post.comments, error=error)
@@ -481,7 +488,8 @@ class PostLike(BlogHandler):
                     error = "you cannot update likes of your own"
                     self.render("permalink.html", post=post, comments=post.comments, error=error)
             else:
-                self.redirect("/login")
+                error = "you have to login first"
+                self.render("login-form.html", error=error)
         else:
             error = "There is no post!"
             self.render("permalink.html", post=post, comments=post.comments, error=error)
@@ -498,7 +506,8 @@ class PostComment(BlogHandler):
             if self.user:
                 self.render('newcomment.html', p=post)
             else:
-                self.redirect("/login")
+                error = "you have to login first"
+                self.render("login-form.html", error=error)
         else:
             self.write("There is no post")
 
@@ -509,20 +518,18 @@ class PostComment(BlogHandler):
         if post:
             if self.user:
                 comment = self.request.get('comments')
-
                 if comment:
                     c = Comment(comment=comment, postId=int(post_id),
                                 userId=int(self.read_secure_cookie('user_id')),
                                 post=post)
-
                     c.put()
-
                     self.redirect('/blog/%s' % post_id)
                 else:
                     error = "comment, please!"
                     self.render("newcomment.html", error=error)
             else:
-                self.redirect("/blog")
+                error = "you have to login first"
+                self.render("login-form.html", error=error)
         else:
             error = "There is no post!"
             self.render("permalink.html", post=post, comments=post.comments, error=error)
@@ -532,17 +539,18 @@ class PostComment(BlogHandler):
 class CommentEdit(BlogHandler):
     def get(self, comment_id):
         key = db.Key.from_path('Comment', int(comment_id))
-        comment = db.get(key)
+        c = db.get(key)
 
-        if comment:
-            if not self.user:
-                self.redirect("/blog")
-
-            if comment.userId != int(self.read_secure_cookie('user_id')):
-                error = "This is not yours!"
-                self.render("permalink.html", post=post, comments=post.comments, error=error)
-                return
-            self.render('commentedit.html', c=comment.comment)
+        if c:
+            if self.user:
+                if comment.userId != int(self.read_secure_cookie('user_id')):
+                    error = "This is not yours!"
+                    self.render("permalink.html", post=post, comments=post.comments, error=error)
+                    return
+                self.render('commentedit.html', c=comment.comment)
+            else:
+                error = "you have to login first"
+                self.render("login-form.html", error=error)
         else:
             error = "There is no comment!"
             self.render("permalink.html", post=post, comments=post.comments, error=error)
@@ -554,23 +562,23 @@ class CommentEdit(BlogHandler):
         c = db.get(key)
 
         if c:
-            if not self.user:
-                self.redirect("/blog/%s" % c.postId)
+            if self.user:
+                if comment.userId != int(self.read_secure_cookie('user_id')):
+                    error = "This is not yours!"
+                    self.render("permalink.html", post=post, comments=post.comments, error=error)
+                    return
 
-            if comment.userId != int(self.read_secure_cookie('user_id')):
-                error = "This is not yours!"
-                self.render("permalink.html", post=post, comments=post.comments, error=error)
-                return
-
-            comment = self.request.get('comments')
-            if comment:
-                c.comment = comment
-                c.put()
-                self.redirect('/blog/%s' % str(c.postId))
+                comment = self.request.get('comments')
+                if comment:
+                    c.comment = comment
+                    c.put()
+                else:
+                    error = "subject and content, please!"
+                    self.render("newpost.html", subject=subject, content=content,
+                                error=error)
             else:
-                error = "subject and content, please!"
-                self.render("newpost.html", subject=subject, content=content,
-                            error=error)
+                error = "you have to login first"
+                self.render("login-form.html", error=error)
         else:
             error = "There is no comment!"
             self.render("permalink.html", post=post, comments=post.comments, error=error)
@@ -582,14 +590,15 @@ class CommentDelete(BlogHandler):
         c = db.get(key)
 
         if c:
-            if not self.user:
-                self.redirect("/blog")
-
-            if c.userId != int(self.read_secure_cookie('user_id')):
-                error = "This is not yours!"
-                self.render("permalink.html", post=post, comments=post.comments, error=error)
-                return
-            self.render('commentdelete.html', c=c)
+            if self.user:
+                if c.userId != int(self.read_secure_cookie('user_id')):
+                    error = "This is not yours!"
+                    self.render("permalink.html", post=post, comments=post.comments, error=error)
+                    return
+                self.render('commentdelete.html', c=c)
+            else:
+                error = "you have to login first"
+                self.render("login-form.html", error=error)
         else:
             error = "There is no comment!"
             self.render("permalink.html", post=post, comments=post.comments, error=error)
@@ -600,16 +609,17 @@ class CommentDelete(BlogHandler):
         c = db.get(key)
 
         if c:
-            if not self.user:
-                self.redirect("/blog")
-
-            if c.userId != int(self.read_secure_cookie('user_id')):
-                error = "This is not yours!"
-                self.render("permalink.html", post=post, comments=post.comments, error=error)
-                return                
-            post_id = c.postId
-            c.delete()
-            self.redirect('/blog/%s' % post_id)
+            if self.user:
+                if c.userId != int(self.read_secure_cookie('user_id')):
+                    error = "This is not yours!"
+                    self.render("permalink.html", post=post, comments=post.comments, error=error)
+                    return                
+                post_id = c.postId
+                c.delete()
+                self.redirect('/blog/%s' % post_id)
+            else:
+                error = "you have to login first"
+                self.render("login-form.html", error=error)
         else:
             error = "There is no comment!"
             self.render("permalink.html", post=post, comments=post.comments, error=error)
