@@ -183,4 +183,6 @@ a:hover {
     margin-top: 10px;
 }
 
-/* Main page */
+#not-yours-error {
+    background-color: #DDA0DD;
+}

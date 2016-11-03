@@ -2,6 +2,7 @@
 
 {% block content %}
 
+  <h3 id="not-yours-error">{{error}}</h3>
   {{post.render() | safe}}
 
   <hr>

@@ -135,12 +135,13 @@ def blog_key(name='default'):
 
 
 class Post(db.Model):
+    user = db.ReferenceProperty(User,
+                                collection_name='posts')
     subject = db.StringProperty(required=True)
     content = db.TextProperty(required=True)
     created = db.DateTimeProperty(auto_now_add=True)
     last_modified = db.DateTimeProperty(auto_now=True)
     userId = db.IntegerProperty()
-    userName = db.StringProperty()
     likeCount = db.IntegerProperty()
 
     def render(self):
@@ -156,14 +157,16 @@ class Liked(db.Model):
 
 
 class Comment(db.Model):
+    post = db.ReferenceProperty(Post,
+                                collection_name='comments')    
     postId = db.IntegerProperty()
     created = db.DateTimeProperty(auto_now_add=True)
     comment = db.StringProperty()
     userId = db.IntegerProperty()
-    userName = db.StringProperty()
 
     def render(self):
-        return render_str("comment.html", c=self)
+        username = User.by_id(int(self.userId)).name
+        return render_str("comment.html", c=self, username=username)
 
 
 class BlogFront(BlogHandler):
@@ -185,7 +188,7 @@ class PostPage(BlogHandler):
             self.error(404)
             return
 
-        self.render("permalink.html", post=post, comments=comments)
+        self.render("permalink.html", post=post, comments=comments, error="")
 
 
 class NewPost(BlogHandler):
@@ -206,7 +209,7 @@ class NewPost(BlogHandler):
             p = Post(parent=blog_key(), subject=subject,
                      content=content,
                      userId=int(self.read_secure_cookie('user_id')),
-                     likeCount=0, userName=self.user.name)
+                     likeCount=0, user = self.user)
             p.put()
 
             l = Liked(postId=int(p.key().id()), userId=p.userId, liked=False)
@@ -354,61 +357,91 @@ class PostEdit(BlogHandler):
         key = db.Key.from_path('Post', int(post_id), parent=blog_key())
         post = db.get(key)
 
-        if self.user:
-            if post.userId != int(self.read_secure_cookie('user_id')):
-                self.write("This is not yours")
-                return
-            self.render('edit.html', subject=post.subject,
-                        content=post.content)
+        if post:
+            if self.user:
+                if post.userId != int(self.read_secure_cookie('user_id')):
+                    error = "This is not yours!"
+                    self.render("permalink.html", post=post, comments=post.comments, error=error)
+                    return
+                self.render('edit.html', subject=post.subject,
+                            content=post.content)
+            else:
+                self.redirect("/login")
         else:
-            self.redirect("/login")
+            error = "There is no post!"
+            self.render("permalink.html", post=post, comments=post.comments, error=error)
+            return
 
     def post(self, post_id):
-        if self.user:
-            if post.userId != int(self.read_secure_cookie('user_id')):
-                self.write("This is not yours")
-                return
-            else:
-                subject = self.request.get('subject')
-                content = self.request.get('content')
+        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+        post = db.get(key)
 
-                if subject and content:
-                    key = db.Key.from_path('Post', int(post_id), parent=blog_key())
-                    post = db.get(key)
-                    post.subject = subject
-                    post.content = content
-                    post.put()
-                    self.redirect('/blog/%s' % str(post.key().id()))
+        if post:
+            if self.user:
+                if post.userId != int(self.read_secure_cookie('user_id')):
+                    error = "This is not yours!"
+                    self.render("permalink.html", post=post, comments=post.comments, error=error)
+                    return
                 else:
-                    error = "subject and content, please!"
-                    self.render("newpost.html", subject=subject, content=content,
-                                error=error)
+                    subject = self.request.get('subject')
+                    content = self.request.get('content')
+
+                    if subject and content:
+                        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+                        post = db.get(key)
+                        post.subject = subject
+                        post.content = content
+                        post.put()
+                        self.redirect('/blog/%s' % str(post.key().id()))
+                    else:
+                        error = "subject and content, please!"
+                        self.render("newpost.html", subject=subject, content=content,
+                                    error=error)
+            else:
+                self.redirect("/login")
         else:
-            self.redirect("/login")
+            error = "There is no post!"
+            self.render("permalink.html", post=post, comments=post.comments, error=error)
+            return
+
 
 
 class PostDelete(BlogHandler):
     def get(self, post_id):
         key = db.Key.from_path('Post', int(post_id), parent=blog_key())
         post = db.get(key)
-        if self.user:
-            if post.userId != int(self.read_secure_cookie('user_id')):
-                self.write("This is not yours")
-                return
-            self.render('delete.html')
+
+        if post:
+            if self.user:
+                if post.userId != int(self.read_secure_cookie('user_id')):
+                    error = "This is not yours!"
+                    self.render("permalink.html", post=post, comments=post.comments, error=error)
+                    return
+                self.render('delete.html')
+            else:
+                self.redirect('/login')
         else:
-            self.redirect('/login')
+            error = "There is no post!"
+            self.render("permalink.html", post=post, comments=post.comments, error=error)
+            return
+
 
     def post(self, post_id):
         key = db.Key.from_path('Post', int(post_id), parent=blog_key())
         post = db.get(key)
 
-        if self.user:
-            if post.userId != int(self.read_secure_cookie('user_id')):
-                self.write("This is not yours")
-                return
-            post.delete()
-            self.redirect('/blog')
+        if post:
+            if self.user:
+                if post.userId != int(self.read_secure_cookie('user_id')):
+                    error = "This is not yours!"
+                    self.render("permalink.html", post=post, comments=post.comments, error=error)
+                    return
+                post.delete()
+                self.redirect('/blog')
+        else:
+            error = "There is no post!"
+            self.render("permalink.html", post=post, comments=post.comments, error=error)
+            return
 
 
 class PostLike(BlogHandler):
@@ -416,35 +449,43 @@ class PostLike(BlogHandler):
         key = db.Key.from_path('Post', int(post_id), parent=blog_key())
         post = db.get(key)
 
-        if self.user:
-            user_id = int(self.read_secure_cookie('user_id'))
-            like = db.GqlQuery(
-                "select * from Liked WHERE postId=:post_id AND userId=:user_id",
-                post_id=int(post_id), user_id=user_id).get()
+        if post:
+            if self.user:
+                user_id = int(self.read_secure_cookie('user_id'))
+                like = db.GqlQuery(
+                    "select * from Liked WHERE postId=:post_id AND userId=:user_id",
+                    post_id=int(post_id), user_id=user_id).get()
 
-            if not like:
-                l = Liked(postId=int(post_id), userId=user_id, liked=True)
-                l.put()
-                post.likeCount += 1
-                post.put()
-                self.write("you like this post")
-            elif int(post.userId) != user_id:
-                if like.liked is False:
-                    like.liked = True
-                    like.put()
+                if not like:
+                    l = Liked(postId=int(post_id), userId=user_id, liked=True)
+                    l.put()
                     post.likeCount += 1
                     post.put()
                     self.write("you like this post")
-                else:
-                    like.liked = False
-                    like.put()
-                    post.likeCount -= 1
-                    post.put()
-                    self.write("you unlike this post")
-            elif int(post.userId) == user_id:
-                self.write("You can not like your post")
+                elif int(post.userId) != user_id:
+                    if like.liked is False:
+                        like.liked = True
+                        like.put()
+                        post.likeCount += 1
+                        post.put()
+                        error = "you like this post"
+                        self.render("permalink.html", post=post, comments=post.comments, error=error)
+                    else:
+                        like.liked = False
+                        like.put()
+                        post.likeCount -= 1
+                        post.put()
+                        error = "you unlike this post"
+                        self.render("permalink.html", post=post, comments=post.comments, error=error)
+                elif int(post.userId) == user_id:
+                    error = "you cannot update likes of your own"
+                    self.render("permalink.html", post=post, comments=post.comments, error=error)
+            else:
+                self.redirect("/login")
         else:
-            self.redirect("/login")
+            error = "There is no post!"
+            self.render("permalink.html", post=post, comments=post.comments, error=error)
+            return
 
 
 class PostComment(BlogHandler):
@@ -453,30 +494,39 @@ class PostComment(BlogHandler):
         key = db.Key.from_path('Post', int(post_id), parent=blog_key())
         post = db.get(key)
 
-        if self.user:
-            self.render('newcomment.html', p=post)
+        if post:
+            if self.user:
+                self.render('newcomment.html', p=post)
+            else:
+                self.redirect("/login")
         else:
-            self.redirect("/login")
+            self.write("There is no post")
 
     def post(self, post_id):
         key = db.Key.from_path('Post', int(post_id), parent=blog_key())
         post = db.get(key)
 
-        if self.user:
-            comment = self.request.get('comments')
+        if post:
+            if self.user:
+                comment = self.request.get('comments')
 
-            if comment:
-                c = Comment(comment=comment, postId=int(post_id),
-                            userName=self.user.name,
-                            userId=int(self.read_secure_cookie('user_id')))
-                c.put()
+                if comment:
+                    c = Comment(comment=comment, postId=int(post_id),
+                                userId=int(self.read_secure_cookie('user_id')),
+                                post=post)
 
-                self.redirect('/blog/%s' % post_id)
+                    c.put()
+
+                    self.redirect('/blog/%s' % post_id)
+                else:
+                    error = "comment, please!"
+                    self.render("newcomment.html", error=error)
             else:
-                error = "comment, please!"
-                self.render("newcomment.html", error=error)
+                self.redirect("/blog")
         else:
-            self.redirect("/blog")
+            error = "There is no post!"
+            self.render("permalink.html", post=post, comments=post.comments, error=error)
+            return
 
 
 class CommentEdit(BlogHandler):
@@ -484,63 +534,86 @@ class CommentEdit(BlogHandler):
         key = db.Key.from_path('Comment', int(comment_id))
         comment = db.get(key)
 
-        if not self.user:
-            self.redirect("/blog")
+        if comment:
+            if not self.user:
+                self.redirect("/blog")
 
-        if comment.userId != int(self.read_secure_cookie('user_id')):
-            self.write("This is not yours")
+            if comment.userId != int(self.read_secure_cookie('user_id')):
+                error = "This is not yours!"
+                self.render("permalink.html", post=post, comments=post.comments, error=error)
+                return
+            self.render('commentedit.html', c=comment.comment)
+        else:
+            error = "There is no comment!"
+            self.render("permalink.html", post=post, comments=post.comments, error=error)
             return
-        self.render('commentedit.html', c=comment.comment)
+
 
     def post(self, comment_id):
         key = db.Key.from_path('Comment', int(comment_id))
         c = db.get(key)
 
-        if not self.user:
-            self.redirect("/blog/%s" % c.postId)
+        if c:
+            if not self.user:
+                self.redirect("/blog/%s" % c.postId)
 
-        if comment.userId != int(self.read_secure_cookie('user_id')):
-            self.write("This is not yours")
-            return
+            if comment.userId != int(self.read_secure_cookie('user_id')):
+                error = "This is not yours!"
+                self.render("permalink.html", post=post, comments=post.comments, error=error)
+                return
 
-        comment = self.request.get('comments')
-        if comment:
-            c.comment = comment
-            c.put()
-            self.redirect('/blog/%s' % str(c.postId))
+            comment = self.request.get('comments')
+            if comment:
+                c.comment = comment
+                c.put()
+                self.redirect('/blog/%s' % str(c.postId))
+            else:
+                error = "subject and content, please!"
+                self.render("newpost.html", subject=subject, content=content,
+                            error=error)
         else:
-            error = "subject and content, please!"
-            self.render("newpost.html", subject=subject, content=content,
-                        error=error)
-
+            error = "There is no comment!"
+            self.render("permalink.html", post=post, comments=post.comments, error=error)
+            return
 
 class CommentDelete(BlogHandler):
     def get(self, comment_id):
         key = db.Key.from_path('Comment', int(comment_id))
         c = db.get(key)
 
-        if not self.user:
-            self.redirect("/blog")
+        if c:
+            if not self.user:
+                self.redirect("/blog")
 
-        if c.userId != int(self.read_secure_cookie('user_id')):
-            self.write("This is not yours")
+            if c.userId != int(self.read_secure_cookie('user_id')):
+                error = "This is not yours!"
+                self.render("permalink.html", post=post, comments=post.comments, error=error)
+                return
+            self.render('commentdelete.html', c=c)
+        else:
+            error = "There is no comment!"
+            self.render("permalink.html", post=post, comments=post.comments, error=error)
             return
-        self.render('commentdelete.html', c=c)
 
     def post(self, comment_id):
         key = db.Key.from_path('Comment', int(comment_id))
         c = db.get(key)
 
-        if not self.user:
-            self.redirect("/blog")
+        if c:
+            if not self.user:
+                self.redirect("/blog")
 
-        if c.userId != int(self.read_secure_cookie('user_id')):
-            self.write("This is not yours")
+            if c.userId != int(self.read_secure_cookie('user_id')):
+                error = "This is not yours!"
+                self.render("permalink.html", post=post, comments=post.comments, error=error)
+                return                
+            post_id = c.postId
+            c.delete()
+            self.redirect('/blog/%s' % post_id)
+        else:
+            error = "There is no comment!"
+            self.render("permalink.html", post=post, comments=post.comments, error=error)
             return
-            
-        post_id = c.postId
-        c.delete()
-        self.redirect('/blog/%s' % post_id)
 
 
 app = webapp2.WSGIApplication([('/', MainPage),
