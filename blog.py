@@ -142,18 +142,12 @@ class Post(db.Model):
     created = db.DateTimeProperty(auto_now_add=True)
     last_modified = db.DateTimeProperty(auto_now=True)
     userId = db.IntegerProperty()
-    likeCount = db.IntegerProperty()
+    likedBy = db.ListProperty(db.Key)
 
     def render(self):
         self._render_text = self.content.replace('\n', '<br>')
-
-        return render_str("post.html", p=self)
-
-
-class Liked(db.Model):
-    postId = db.IntegerProperty()
-    userId = db.IntegerProperty()
-    liked = db.BooleanProperty()
+        counter = len(self.likedBy)
+        return render_str("post.html", p=self, counter = counter)
 
 
 class Comment(db.Model):
@@ -459,31 +453,18 @@ class PostLike(BlogHandler):
         if post:
             if self.user:
                 user_id = int(self.read_secure_cookie('user_id'))
-                like = db.GqlQuery(
-                    "select * from Liked WHERE postId=:post_id AND userId=:user_id",
-                    post_id=int(post_id), user_id=user_id).get()
 
-                if not like:
-                    l = Liked(postId=int(post_id), userId=user_id, liked=True)
-                    l.put()
-                    post.likeCount += 1
-                    post.put()
-                    self.write("you like this post")
-                elif int(post.userId) != user_id:
-                    if like.liked is False:
-                        like.liked = True
-                        like.put()
-                        post.likeCount += 1
+                if int(post.userId) != user_id:
+                    if not self.user.key() in post.likedBy:
+                        post.likedBy.append(self.user.key())
                         post.put()
-                        error = "you like this post"
-                        self.render("permalink.html", post=post, comments=post.comments, error=error)
+                        msg = "you like this post"
+                        self.render("permalink.html", post=post, comments=post.comments, error=msg)
                     else:
-                        like.liked = False
-                        like.put()
-                        post.likeCount -= 1
+                        post.likedBy.remove(self.user.key())
                         post.put()
-                        error = "you unlike this post"
-                        self.render("permalink.html", post=post, comments=post.comments, error=error)
+                        msg = "you unlike this post"
+                        self.render("permalink.html", post=post, comments=post.comments, error=msg)
                 elif int(post.userId) == user_id:
                     error = "you cannot update likes of your own"
                     self.render("permalink.html", post=post, comments=post.comments, error=error)

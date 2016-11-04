@@ -20,7 +20,7 @@
     {{p._render_text | safe}}
   </div>
   
-  <p> Likes : <span id="likecount">{{p.likeCount}}</span> </p>
+  <p> Likes : <span id="likecount">{{counter}}</span> </p>
   
   <div class="buttons">
     <form method="post" action="/blog/like/{{p.key().id()}}">
